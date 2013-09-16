@@ -1,0 +1,226 @@
+From 23152fe25358ded3e07184730ad2d317bc3f6026 Mon Sep 17 00:00:00 2001
+From: "George G. Davis" <george_davis@mentor.com>
+Date: Fri, 23 Aug 2013 18:09:57 -0400
+Subject: [PATCH] SuperFIFO Virtual Prototype DTS updates
+
+Signed-off-by: George G. Davis <george_davis@mentor.com>
+---
+ arch/arm/boot/dts/vexpress-v2m.dtsi    | 21 +++++++++++++++------
+ arch/arm/boot/dts/vexpress-v2p-ca9.dts | 29 +++++++++++++++++------------
+ 2 files changed, 32 insertions(+), 18 deletions(-)
+
+diff --git a/arch/arm/boot/dts/vexpress-v2m.dtsi b/arch/arm/boot/dts/vexpress-v2m.dtsi
+index dba53fd..95337e4 100755
+--- a/arch/arm/boot/dts/vexpress-v2m.dtsi
++++ b/arch/arm/boot/dts/vexpress-v2m.dtsi
+@@ -28,7 +28,7 @@
+ 		#size-cells = <1>;
+ 		#interrupt-cells = <1>;
+ 
+-		flash@0,00000000 {
++/*		flash@0,00000000 {
+ 			compatible = "arm,vexpress-flash", "cfi-flash";
+ 			reg = <0 0x00000000 0x04000000>,
+ 			      <1 0x00000000 0x04000000>;
+@@ -46,6 +46,7 @@
+ 			reg = <3 0x00000000 0x00800000>;
+ 		};
+ 
++*/
+ 		ethernet@3,02000000 {
+ 			compatible = "smsc,lan9118", "smsc,lan9115";
+ 			reg = <3 0x02000000 0x10000>;
+@@ -57,6 +58,7 @@
+ 			vdd33a-supply = <&v2m_fixed_3v3>;
+ 			vddvario-supply = <&v2m_fixed_3v3>;
+ 		};
++/*
+ 
+ 		usb@3,03000000 {
+ 			compatible = "nxp,usb-isp1761";
+@@ -64,7 +66,7 @@
+ 			interrupts = <16>;
+ 			port1-otg;
+ 		};
+-
++*/
+ 		iofpga@7,00000000 {
+ 			compatible = "arm,amba-bus", "simple-bus";
+ 			#address-cells = <1>;
+@@ -82,7 +84,7 @@
+ 			};
+ 
+ 			/* PCI-E I2C bus */
+-			v2m_i2c_pcie: i2c@02000 {
++/*			v2m_i2c_pcie: i2c@02000 {
+ 				compatible = "arm,versatile-i2c";
+ 				reg = <0x02000 0x1000>;
+ 
+@@ -118,7 +120,7 @@
+ 				reg = <0x07000 0x1000>;
+ 				interrupts = <13>;
+ 			};
+-
++*/
+ 			v2m_serial0: uart@09000 {
+ 				compatible = "arm,pl011", "arm,primecell";
+ 				reg = <0x09000 0x1000>;
+@@ -130,7 +132,7 @@
+ 				reg = <0x0a000 0x1000>;
+ 				interrupts = <6>;
+ 			};
+-
++/*
+ 			v2m_serial2: uart@0b000 {
+ 				compatible = "arm,pl011", "arm,primecell";
+ 				reg = <0x0b000 0x1000>;
+@@ -142,6 +144,7 @@
+ 				reg = <0x0c000 0x1000>;
+ 				interrupts = <8>;
+ 			};
++*/
+ 
+ 			wdt@0f000 {
+ 				compatible = "arm,sp805", "arm,primecell";
+@@ -162,7 +165,7 @@
+ 			};
+ 
+ 			/* DVI I2C bus */
+-			v2m_i2c_dvi: i2c@16000 {
++/*			v2m_i2c_dvi: i2c@16000 {
+ 				compatible = "arm,versatile-i2c";
+ 				reg = <0x16000 0x1000>;
+ 
+@@ -198,7 +201,12 @@
+ 				reg = <0x1f000 0x1000>;
+ 				interrupts = <14>;
+ 			};
++*/
++
++
++
+ 		};
++        
+ 
+ 		v2m_fixed_3v3: fixedregulator@0 {
+ 			compatible = "regulator-fixed";
+@@ -207,5 +215,6 @@
+ 			regulator-max-microvolt = <3300000>;
+ 			regulator-always-on;
+ 		};
++
+ 	};
+ };
+diff --git a/arch/arm/boot/dts/vexpress-v2p-ca9.dts b/arch/arm/boot/dts/vexpress-v2p-ca9.dts
+index 3f0c736..3e20e46 100755
+--- a/arch/arm/boot/dts/vexpress-v2p-ca9.dts
++++ b/arch/arm/boot/dts/vexpress-v2p-ca9.dts
+@@ -2,7 +2,7 @@
+  * ARM Ltd. Versatile Express
+  *
+  * CoreTile Express A9x4
+- * Cortex-A9 MPCore (V2P-CA9)
++ * Cortex-A9 MPCore (V2P-CA9) 
+  *
+  * HBI-0191B
+  */
+@@ -17,15 +17,20 @@
+ 	#address-cells = <1>;
+ 	#size-cells = <1>;
+ 
+-	chosen { };
++	chosen {
++		bootargs = "rdinit=/linuxrc console=ttyAMA0 mem=500M@0x880000000 earlyprintk";
++		linux,initrd-start = <0x8C000000>;
++		linux,initrd-end   = <0x9C000000>;
++	};
+ 
+ 	aliases {
+ 		serial0 = &v2m_serial0;
+ 		serial1 = &v2m_serial1;
+-		serial2 = &v2m_serial2;
++/*		serial2 = &v2m_serial2;
+ 		serial3 = &v2m_serial3;
+ 		i2c0 = &v2m_i2c_dvi;
+ 		i2c1 = &v2m_i2c_pcie;
++*/
+ 	};
+ 
+ 	cpus {
+@@ -36,28 +41,28 @@
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <0>;
+-			next-level-cache = <&L2>;
++//			next-level-cache = <&L2>;
+ 		};
+ 
+ 		cpu@1 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <1>;
+-			next-level-cache = <&L2>;
++//			next-level-cache = <&L2>;
+ 		};
+ 
+ 		cpu@2 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <2>;
+-			next-level-cache = <&L2>;
++//			next-level-cache = <&L2>;
+ 		};
+ 
+ 		cpu@3 {
+ 			device_type = "cpu";
+ 			compatible = "arm,cortex-a9";
+ 			reg = <3>;
+-			next-level-cache = <&L2>;
++//			next-level-cache = <&L2>;
+ 		};
+ 	};
+ 
+@@ -67,11 +72,11 @@
+ 	};
+ 
+ 	clcd@10020000 {
+-		compatible = "arm,pl111", "arm,primecell";
++		compatible = "arm,pl110", "arm,primecell";
+ 		reg = <0x10020000 0x1000>;
+ 		interrupts = <0 44 4>;
+ 	};
+-
++/*
+ 	memory-controller@100e0000 {
+ 		compatible = "arm,pl341", "arm,primecell";
+ 		reg = <0x100e0000 0x1000>;
+@@ -96,7 +101,7 @@
+ 		reg = <0x100e5000 0x1000>;
+ 		interrupts = <0 51 4>;
+ 	};
+-
++*/
+ 	scu@1e000000 {
+ 		compatible = "arm,cortex-a9-scu";
+ 		reg = <0x1e000000 0x58>;
+@@ -123,7 +128,7 @@
+ 		      <0x1e000100 0x100>;
+ 	};
+ 
+-	L2: cache-controller@1e00a000 {
++/*	L2: cache-controller@1e00a000 {
+ 		compatible = "arm,pl310-cache";
+ 		reg = <0x1e00a000 0x1000>;
+ 		interrupts = <0 43 4>;
+@@ -131,7 +136,7 @@
+ 		arm,data-latency = <1 1 1>;
+ 		arm,tag-latency = <1 1 1>;
+ 	};
+-
++*/
+ 	pmu {
+ 		compatible = "arm,cortex-a9-pmu";
+ 		interrupts = <0 60 4>,
+-- 
+1.7.11.7
+

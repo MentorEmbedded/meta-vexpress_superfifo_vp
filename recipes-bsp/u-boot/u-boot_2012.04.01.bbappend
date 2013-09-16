@@ -1,0 +1,7 @@
+#SRC_URI = "git://git.denx.de/u-boot.git;branch=master;protocol=git"
+#SRC_URI = "git://git.linaro.org/boot/u-boot-linaro-stable.git;branch=Linaro-u-boot-2012.04;protocol=git"
+#INSANE_SKIP_${PN} = "1"
+#INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
+#INHIBIT_PACKAGE_STRIP = "1"
+#WARN_QA = "ldflags useless-rpaths rpaths unsafe-references-in-binaries unsafe-references-in-scripts staticdev libdir"
+#ERROR_QA = "dev-so debug-deps dev-deps arch la2 pkgconfig la perms dep-cmp"

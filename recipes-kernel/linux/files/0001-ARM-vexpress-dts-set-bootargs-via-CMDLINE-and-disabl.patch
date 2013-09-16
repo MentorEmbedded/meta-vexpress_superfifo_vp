@@ -1,0 +1,48 @@
+From 066babbc84d39a9cd82752d98c32a14353a156b2 Mon Sep 17 00:00:00 2001
+From: "George G. Davis" <george_davis@mentor.com>
+Date: Wed, 11 Sep 2013 19:51:05 -0400
+Subject: [PATCH] ARM: vexpress: dts: set bootargs via CMDLINE and disable
+ initrd
+
+Signed-off-by: George G. Davis <george_davis@mentor.com>
+---
+ arch/arm/boot/dts/vexpress-v2p-ca9.dts | 8 +++++---
+ arch/arm/configs/vexpress_defconfig    | 3 ++-
+ 2 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/boot/dts/vexpress-v2p-ca9.dts b/arch/arm/boot/dts/vexpress-v2p-ca9.dts
+index 9f74dfa..d98a432 100755
+--- a/arch/arm/boot/dts/vexpress-v2p-ca9.dts
++++ b/arch/arm/boot/dts/vexpress-v2p-ca9.dts
+@@ -18,9 +18,11 @@
+ 	#size-cells = <1>;
+ 
+ 	chosen {
+-		bootargs = "rdinit=/linuxrc console=ttyAMA0 mem=500M@0x880000000 earlyprintk";
+-		linux,initrd-start = <0x8C000000>;
+-		linux,initrd-end   = <0x9C000000>;
++// Move default cmdline into defconfig where it can be modified via conf/local.conf as/when needed:
++		bootargs = "rootfstype=ext2 root=/dev/mmcblk0 rw console=ttyAMA0 mem=500M@0x880000000 earlyprintk";
++// Disable initrd-{start,end} when it's not included else it will crash:
++//		linux,initrd-start = <0x8C000000>;
++//		linux,initrd-end   = <0x9C000000>;
+ 	};
+ 
+ 	aliases {
+diff --git a/arch/arm/configs/vexpress_defconfig b/arch/arm/configs/vexpress_defconfig
+index f096011..f4989bd 100755
+--- a/arch/arm/configs/vexpress_defconfig
++++ b/arch/arm/configs/vexpress_defconfig
+@@ -35,7 +35,8 @@ CONFIG_AEABI=y
+ CONFIG_ZBOOT_ROM_TEXT=0x0
+ CONFIG_ZBOOT_ROM_BSS=0x0
+ CONFIG_ARM_APPENDED_DTB=y
+-CONFIG_CMDLINE="root=/dev/nfs nfsroot=10.1.69.3:/work/nfsroot ip=dhcp console=ttyAMA0 mem=128M"
++CONFIG_CMDLINE="rootfstype=ext2 root=/dev/mmcblk0 rw console=ttyAMA0 mem=500M@0x880000000 earlyprintk"
++CONFIG_CMDLINE_FORCE=y
+ CONFIG_VFP=y
+ CONFIG_NEON=y
+ # CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
+-- 
+1.7.11.7
+

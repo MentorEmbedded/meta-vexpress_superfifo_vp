@@ -1,0 +1,407 @@
+From 680b6775a62fb2020278e009db53c9a0681fc0d3 Mon Sep 17 00:00:00 2001
+From: "George G. Davis" <george_davis@mentor.com>
+Date: Tue, 10 Sep 2013 14:35:16 -0400
+Subject: [PATCH] SuperFIFO Virtual Prototype Demo Driver Sep 03, 2013 updates
+
+Signed-off-by: George G. Davis <george_davis@mentor.com>
+---
+ drivers/sfifo_drv/Makefile          |   2 +-
+ drivers/sfifo_drv/sfifo_ctrl.h      |  19 -----
+ drivers/sfifo_drv/sfifo_drv.c       | 162 ------------------------------------
+ drivers/sfifo_drv/super_fifo_ctrl.h |  19 +++++
+ drivers/sfifo_drv/super_fifo_drv.c  | 155 ++++++++++++++++++++++++++++++++++
+ 5 files changed, 175 insertions(+), 182 deletions(-)
+ delete mode 100755 drivers/sfifo_drv/sfifo_ctrl.h
+ delete mode 100755 drivers/sfifo_drv/sfifo_drv.c
+ create mode 100755 drivers/sfifo_drv/super_fifo_ctrl.h
+ create mode 100755 drivers/sfifo_drv/super_fifo_drv.c
+
+diff --git a/drivers/sfifo_drv/Makefile b/drivers/sfifo_drv/Makefile
+index e7ca390..99552a2 100755
+--- a/drivers/sfifo_drv/Makefile
++++ b/drivers/sfifo_drv/Makefile
+@@ -1 +1 @@
+-obj-$(CONFIG_SFIFO_DRV) = sfifo_drv.o
++obj-$(CONFIG_SFIFO_DRV) = super_fifo_drv.o
+diff --git a/drivers/sfifo_drv/sfifo_ctrl.h b/drivers/sfifo_drv/sfifo_ctrl.h
+deleted file mode 100755
+index ffddbdf..0000000
+--- a/drivers/sfifo_drv/sfifo_ctrl.h
++++ /dev/null
+@@ -1,19 +0,0 @@
+-
+-#ifndef __super_fifo_ctrl_h__
+-#define __super_fifo_ctrl_h__
+-
+-#include <linux/ioctl.h>
+-
+-/*
+- * Ioctl definitions
+- */
+- 
+-/* Use 'a' as magic number */
+-#define SUPER_FIFO_IOC_MAGIC  'a'
+- 
+-#define SUPER_FIFO_IOC_CLEAR    _IO(SUPER_FIFO_IOC_MAGIC, 0)
+- 
+-#define SUPER_FIFO_IOC_GET_STATUS _IO(SUPER_FIFO_IOC_MAGIC,  1)
+-#define SUPER_FIFO_IOC_GET_COUNT  _IO(SUPER_FIFO_IOC_MAGIC,  2)
+-
+-#endif
+diff --git a/drivers/sfifo_drv/sfifo_drv.c b/drivers/sfifo_drv/sfifo_drv.c
+deleted file mode 100755
+index 29957bf..0000000
+--- a/drivers/sfifo_drv/sfifo_drv.c
++++ /dev/null
+@@ -1,162 +0,0 @@
+-#include <linux/module.h>
+-#include <linux/string.h>
+-#include <linux/fs.h>
+-#include <asm/uaccess.h>
+-#include <asm/io.h>
+-
+-#include "sfifo_ctrl.h"
+-
+-// module attributes
+-MODULE_LICENSE("GPL"); // this avoids kernel taint warning
+-MODULE_DESCRIPTION("SuperFIFO Device Driver Demo");
+-MODULE_AUTHOR("Assaf Smair");
+-
+-#define DEVICE_NAME "SuperFIFO"
+-
+-static int times = 0;
+-
+-// protoypes,else the structure initialization that follows fail
+-static int super_fifo_open(struct inode *, struct file *);
+-static int super_fifo_release(struct inode *, struct file *);
+-static ssize_t super_fifo_read(struct file *, char *, size_t, loff_t *);
+-static ssize_t super_fifo_write(struct file *, const char *, size_t, loff_t *);
+-static long super_fifo_ioctl(struct file *, unsigned int cmd, unsigned long arg);
+-
+-// structure containing callbacks
+-static struct file_operations fops = 
+-        {
+-                .read = super_fifo_read, // address of super_fifo_read
+-                .open = super_fifo_open,  // address of super_fifo_open
+-                .write = super_fifo_write, // address of super_fifo_write 
+-                .release = super_fifo_release, // address of super_fifo_release
+-                .unlocked_ioctl = super_fifo_ioctl // address of super_fifo_ioctl
+-        };
+-
+-
+-typedef struct super_fifo_regs {
+-        uint32_t d;
+-        uint32_t padding[0x3c/sizeof(uint32_t)];
+-        uint32_t status;	// SFIFO_STAT_xxxx flags
+-        uint32_t count;
+-} super_fifo_regs;
+-
+-#define SFIFO_STAT_FULL     0x20
+-#define SFIFO_STAT_ALMOST_F 0x10
+-#define SFIFO_STAT_HALF_F   0x08
+-#define SFIFO_STAT_ALMOST_E 0x04
+-#define SFIFO_STAT_NOT_E	0x02
+-#define SFIFO_STAT_EMPTY    0x01
+-
+-static unsigned long base = 0x40000000;
+-static super_fifo_regs *regs;
+-//static struct class *dev_class = 0;
+-
+-// called when module is loaded, similar to main()
+-int init_module(void)
+-{
+-	int t = register_chrdev(89, "superFIFODev", &fops); //register driver with major:89
+-	
+-	if (t<0) { 
+-                printk(KERN_ALERT "Device registration failed..\n");
+-                return t;
+-        }
+-
+-        regs = (super_fifo_regs*) ioremap(base, sizeof(super_fifo_regs));
+-        if (!regs) {
+-                printk(KERN_ALERT "Cannot ioremap 0x%lx\n", base);
+-                unregister_chrdev(89,"superFIFODev");
+-                return -1;
+-        }
+-        //        dev_class = class_create(THIS_MODULE, DEVICE_NAME);
+-
+-        regs->count  = 0;
+-        regs->status = 0x80000000;
+-
+-	return t;
+-}
+-
+-
+-// called when module is unloaded, similar to destructor in OOP
+-void cleanup_module(void)
+-{
+-        if (regs) {
+-                iounmap(regs);
+-        }
+-	unregister_chrdev(89,"superFIFODev");
+-}
+-
+-// called when 'open' system call is done on the device file
+-static int super_fifo_open(struct inode *inod,struct file *fil)
+-{	
+-	times++;
+-	printk(KERN_ALERT"Device opened %d times\n",times);
+-	return 0;
+-}
+-
+-// called when 'read' system call is done on the device file
+-static ssize_t super_fifo_read(struct file *filp,char *buff,size_t len,loff_t *off)
+-{
+-	ssize_t cnt = 0;    // number of bytes actually pulled from the FIFO
+-        unsigned long result = 0;
+-        ssize_t max_len = len > 16 ? 16 : len;
+-        char copied;
+-	printk(KERN_ALERT"SuperFIFO super_fifo_read\n");
+-	while (cnt < max_len &&  ((regs->status & SFIFO_STAT_EMPTY) != SFIFO_STAT_EMPTY) )
+-                {
+-                        copied = regs->d;
+-                        result = copy_to_user(buff + cnt, &copied, 1);
+-                        cnt++;
+-                }
+-	return (cnt);
+-}
+-
+-// called when 'write' system call is done on the device file
+-static ssize_t super_fifo_write(struct file *filp,const char *buff,size_t len,loff_t *off)
+-{
+-        ssize_t cnt = 0;    // number of bytes actually pushed into the FIFO
+-        unsigned long result = 0;
+-        char copied;
+-	printk(KERN_ALERT"SuperFIFO super_fifo_write\n");
+-        while( (cnt < len) && ((regs->status & SFIFO_STAT_FULL) != SFIFO_STAT_FULL) )
+-                {
+-                        result = copy_from_user(&copied, buff + cnt, 1);
+-                        regs->d = copied;
+-                        cnt++;
+-                }
+-        return (cnt);  // the bug is returning 'len' when it should return 'cnt'
+-}
+-
+-// called when 'close' system call is done on the device file
+-static int super_fifo_release(struct inode *inod,struct file *fil)
+-{
+-	printk(KERN_ALERT"Device closed\n");
+-	return 0;
+-}
+-
+-static long super_fifo_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+-{
+-        long retval = 0;
+-
+-        printk(KERN_ALERT"SuperFIFO super_fifo_ioctl %lu\n", arg);
+-        
+-        switch(cmd) {
+- 
+-        case SUPER_FIFO_IOC_GET_STATUS:
+-                retval = regs->status; //0x80000000;
+-                break;
+-         
+-        case SUPER_FIFO_IOC_GET_COUNT:
+-                retval = regs->count; //100;
+-                break;
+- 
+-        case SUPER_FIFO_IOC_CLEAR:
+-                printk(KERN_ALERT"Device clear\n");
+-                regs->status = 0x80000000;
+-                break;
+-
+-        default:  /* redundant, as cmd was checked against MAXNR */
+-                return -ENOTTY;
+-        }
+-
+-        return retval;
+-}
+diff --git a/drivers/sfifo_drv/super_fifo_ctrl.h b/drivers/sfifo_drv/super_fifo_ctrl.h
+new file mode 100755
+index 0000000..ffddbdf
+--- /dev/null
++++ b/drivers/sfifo_drv/super_fifo_ctrl.h
+@@ -0,0 +1,19 @@
++
++#ifndef __super_fifo_ctrl_h__
++#define __super_fifo_ctrl_h__
++
++#include <linux/ioctl.h>
++
++/*
++ * Ioctl definitions
++ */
++ 
++/* Use 'a' as magic number */
++#define SUPER_FIFO_IOC_MAGIC  'a'
++ 
++#define SUPER_FIFO_IOC_CLEAR    _IO(SUPER_FIFO_IOC_MAGIC, 0)
++ 
++#define SUPER_FIFO_IOC_GET_STATUS _IO(SUPER_FIFO_IOC_MAGIC,  1)
++#define SUPER_FIFO_IOC_GET_COUNT  _IO(SUPER_FIFO_IOC_MAGIC,  2)
++
++#endif
+diff --git a/drivers/sfifo_drv/super_fifo_drv.c b/drivers/sfifo_drv/super_fifo_drv.c
+new file mode 100755
+index 0000000..8c61e09
+--- /dev/null
++++ b/drivers/sfifo_drv/super_fifo_drv.c
+@@ -0,0 +1,155 @@
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/fs.h>
++#include <asm/uaccess.h>
++#include <asm/io.h>
++
++#include "super_fifo_ctrl.h"
++
++// module attributes
++MODULE_LICENSE("GPL"); // this avoids kernel taint warning
++MODULE_DESCRIPTION("SuperFIFO Device Driver Demo");
++MODULE_AUTHOR("Assaf Smair");
++
++#define DEVICE_NAME "SuperFIFO"
++
++static int times = 0;
++
++// protoypes,else the structure initialization that follows fail
++static int super_fifo_open(struct inode *, struct file *);
++static int super_fifo_release(struct inode *, struct file *);
++static ssize_t super_fifo_read(struct file *, char *, size_t, loff_t *);
++static ssize_t super_fifo_write(struct file *, const char *, size_t, loff_t *);
++static long super_fifo_ioctl(struct file *, unsigned int cmd, unsigned long arg);
++
++// structure containing callbacks
++static struct file_operations fops = 
++        {
++                .read = super_fifo_read, // address of super_fifo_read
++                .open = super_fifo_open,  // address of super_fifo_open
++                .write = super_fifo_write, // address of super_fifo_write 
++                .release = super_fifo_release, // address of super_fifo_release
++                .unlocked_ioctl = super_fifo_ioctl // address of super_fifo_ioctl
++        };
++
++
++typedef struct super_fifo_regs {
++        uint32_t d;
++        uint32_t padding[0x3c/sizeof(uint32_t)];
++        uint32_t status;
++        uint32_t count;
++} super_fifo_regs;
++
++static unsigned long base = 0x40000000;
++static super_fifo_regs *regs;
++//static struct class *dev_class = 0;
++
++// called when module is loaded, similar to main()
++int init_module(void)
++{
++	int t = register_chrdev(89, "superFIFODev", &fops); //register driver with major:89
++	
++	if (t<0) { 
++                printk(KERN_ALERT "Device registration failed..\n");
++                return t;
++        }
++
++        regs = (super_fifo_regs*) ioremap(base, sizeof(super_fifo_regs));
++        if (!regs) {
++                printk(KERN_ALERT "Cannot ioremap 0x%lx\n", base);
++                unregister_chrdev(89,"superFIFODev");
++                return -1;
++        }
++        //        dev_class = class_create(THIS_MODULE, DEVICE_NAME);
++
++        regs->count  = 0;
++        regs->status = 0x80000000;
++
++	return t;
++}
++
++
++// called when module is unloaded, similar to destructor in OOP
++void cleanup_module(void)
++{
++        if (regs) {
++                iounmap(regs);
++        }
++	unregister_chrdev(89,"superFIFODev");
++}
++
++// called when 'open' system call is done on the device file
++static int super_fifo_open(struct inode *inod,struct file *fil)
++{	
++	times++;
++	printk(KERN_ALERT"Device opened %d times\n",times);
++	return 0;
++}
++
++// called when 'read' system call is done on the device file
++static ssize_t super_fifo_read(struct file *filp,char *buff,size_t len,loff_t *off)
++{
++	ssize_t cnt = 0;
++        unsigned long result = 0;
++        ssize_t max_len = len > 16 ? 16 : len;
++        char copied;
++	printk(KERN_ALERT"SuperFIFO super_fifo_read\n");
++	while (cnt < max_len && regs->count > 0)
++                {
++                        copied = regs->d;
++                        result = copy_to_user(buff + cnt, &copied, 1);
++                        cnt++;
++                }
++	return (cnt > 16 ? 16 : cnt);
++}
++
++// called when 'write' system call is done on the device file
++static ssize_t super_fifo_write(struct file *filp,const char *buff,size_t len,loff_t *off)
++{
++        ssize_t cnt = 0;
++        unsigned long result = 0;
++        char copied;
++	printk(KERN_ALERT"SuperFIFO super_fifo_write\n");
++        while(regs->count < 16 && cnt < len) 
++                {
++                        result = copy_from_user(&copied, buff + cnt, 1);
++                        regs->d = copied;
++                        cnt++;
++                }
++        return (cnt > 16 ? 16 : cnt);
++}
++
++// called when 'close' system call is done on the device file
++static int super_fifo_release(struct inode *inod,struct file *fil)
++{
++	printk(KERN_ALERT"Device closed\n");
++	return 0;
++}
++
++static long super_fifo_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
++{
++        long retval = 0;
++
++        printk(KERN_ALERT"SuperFIFO super_fifo_ioctl %lu\n", arg);
++        
++        switch(cmd) {
++ 
++        case SUPER_FIFO_IOC_GET_STATUS:
++                retval = regs->status; //0x80000000;
++                break;
++         
++        case SUPER_FIFO_IOC_GET_COUNT:
++                retval = regs->count; //100;
++                break;
++ 
++        case SUPER_FIFO_IOC_CLEAR:
++                printk(KERN_ALERT"Device clear\n");
++                regs->status = 0x80000000;
++                break;
++
++        default:  /* redundant, as cmd was checked against MAXNR */
++                return -ENOTTY;
++        }
++
++        return retval;
++}
+-- 
+1.7.11.7
+

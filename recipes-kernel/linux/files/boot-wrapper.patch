@@ -1,0 +1,74 @@
+diff --git a/Makefile b/Makefile
+index 14091bf..2bd5fb6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -8,7 +8,8 @@
+ BOOTLOADER	= boot.S
+ KERNEL		= zImage
+ KERNEL_HDR_SZ	= 0x0	# 0x40 for uImage
+-FILESYSTEM	= filesystem.cpio.gz
++DTB		= vexpress-v2p-ca9.dtb
++#FILESYSTEM	= filesystem.cpio.gz
+ 
+ IMAGE		= linux-system.axf
+ LD_SCRIPT	= model.lds.S
+@@ -20,9 +21,10 @@ LD		= $(CROSS_COMPILE)ld
+ 
+ CPPFLAGS	+= -DKERNEL=$(KERNEL)
+ CPPFLAGS	+= -DKERNEL_HDR_SZ=$(KERNEL_HDR_SZ)
+-CPPFLAGS	+= -DFILESYSTEM=$(FILESYSTEM)
++CPPFLAGS	+= -DDTB=$(DTB)
++#CPPFLAGS	+= -DFILESYSTEM=$(FILESYSTEM)
+ 
+-CPPFLAGS	+= -DUSE_INITRD
++#CPPFLAGS	+= -UUSE_INITRD
+ 
+ CPPFLAGS	+= -DVEXPRESS
+ CPPFLAGS	+= -DSMP
+diff --git a/boot.S b/boot.S
+index a74784f..8484743 100644
+--- a/boot.S
++++ b/boot.S
+@@ -98,6 +98,7 @@ atags:
+ 	.long	2
+ 	.long	0x54410001
+ 
++#if	0
+ 	@ ATAG_CMDLINE
+ 	.long	(1f - .) >> 2
+ 	.long	0x54410009
+@@ -114,6 +115,7 @@ atags:
+ #endif
+ 	.align	2
+ 1:
++#endif
+ 
+ #ifdef USE_INITRD
+ 	@ ATAG_INITRD2
+diff --git a/model.lds.S b/model.lds.S
+index 794736b..064424c 100644
+--- a/model.lds.S
++++ b/model.lds.S
+@@ -13,6 +13,9 @@ TARGET(binary)
+ 
+ INPUT(./boot.o)
+ INPUT(./KERNEL)
++#ifdef DTB
++INPUT(./DTB)
++#endif
+ #ifdef USE_INITRD
+ INPUT(./FILESYSTEM)
+ #endif
+@@ -34,6 +37,12 @@ SECTIONS
+ 	kernel = . + KERNEL_HDR_SZ;
+ 	.kernel : { ./KERNEL }
+ 
++#ifdef	DTB
++	. = ALIGN(4);
++	dtb = .;
++	.dtb : { ./DTB }
++#endif
++
+ 	. = PHYS_OFFSET + 0x00800000;
+ 	filesystem = .;
+ #ifdef USE_INITRD

@@ -1,0 +1,78 @@
+From a31347a9a576c83730f53b29b2629974f6497bae Mon Sep 17 00:00:00 2001
+From: "George G. Davis" <george_davis@mentor.com>
+Date: Wed, 11 Sep 2013 15:16:24 -0400
+Subject: [PATCH] ARM: vexpress: DTS: update to include changes in recent MED
+ VXP
+
+Signed-off-by: George G. Davis <george_davis@mentor.com>
+---
+ arch/arm/boot/dts/vexpress-v2m.dtsi    | 11 ++++-------
+ arch/arm/boot/dts/vexpress-v2p-ca9.dts |  2 +-
+ 2 files changed, 5 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm/boot/dts/vexpress-v2m.dtsi b/arch/arm/boot/dts/vexpress-v2m.dtsi
+index 95337e4..0423b26 100755
+--- a/arch/arm/boot/dts/vexpress-v2m.dtsi
++++ b/arch/arm/boot/dts/vexpress-v2m.dtsi
+@@ -59,7 +59,6 @@
+ 			vddvario-supply = <&v2m_fixed_3v3>;
+ 		};
+ /*
+-
+ 		usb@3,03000000 {
+ 			compatible = "nxp,usb-isp1761";
+ 			reg = <3 0x03000000 0x20000>;
+@@ -102,13 +101,14 @@
+ 				reg = <0x04000 0x1000>;
+ 				interrupts = <11>;
+ 			};
+-
++*/
+ 			mmci@05000 {
+ 				compatible = "arm,pl180", "arm,primecell";
+ 				reg = <0x05000 0x1000>;
+ 				interrupts = <9 10>;
+ 			};
+ 
++
+ 			kmi@06000 {
+ 				compatible = "arm,pl050", "arm,primecell";
+ 				reg = <0x06000 0x1000>;
+@@ -120,7 +120,7 @@
+ 				reg = <0x07000 0x1000>;
+ 				interrupts = <13>;
+ 			};
+-*/
++
+ 			v2m_serial0: uart@09000 {
+ 				compatible = "arm,pl011", "arm,primecell";
+ 				reg = <0x09000 0x1000>;
+@@ -202,11 +202,8 @@
+ 				interrupts = <14>;
+ 			};
+ */
+-
+-
+-
+ 		};
+-        
++
+ 
+ 		v2m_fixed_3v3: fixedregulator@0 {
+ 			compatible = "regulator-fixed";
+diff --git a/arch/arm/boot/dts/vexpress-v2p-ca9.dts b/arch/arm/boot/dts/vexpress-v2p-ca9.dts
+index 3e20e46..9f74dfa 100755
+--- a/arch/arm/boot/dts/vexpress-v2p-ca9.dts
++++ b/arch/arm/boot/dts/vexpress-v2p-ca9.dts
+@@ -2,7 +2,7 @@
+  * ARM Ltd. Versatile Express
+  *
+  * CoreTile Express A9x4
+- * Cortex-A9 MPCore (V2P-CA9) 
++ * Cortex-A9 MPCore (V2P-CA9)
+  *
+  * HBI-0191B
+  */
+-- 
+1.7.11.7
+

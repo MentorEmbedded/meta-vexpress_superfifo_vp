@@ -1,0 +1,124 @@
+From 70db695978395edf7e1e362937d0d95c5f397b76 Mon Sep 17 00:00:00 2001
+From: "George G. Davis" <george_davis@mentor.com>
+Date: Fri, 13 Sep 2013 15:15:03 -0400
+Subject: [PATCH] Mentor Graphics vexpress_superfifo_vp boot-wrapper
+ integration fixups
+
+Signed-off-by: George G. Davis <george_davis@mentor.com>
+---
+ arch/arm/boot/boot-wrapper/Makefile    |  6 ++++--
+ arch/arm/boot/boot-wrapper/boot.S      |  6 ++++--
+ arch/arm/boot/boot-wrapper/model.lds.S | 20 +++++++++++++++-----
+ 3 files changed, 23 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm/boot/boot-wrapper/Makefile b/arch/arm/boot/boot-wrapper/Makefile
+index 14091bf..6afbc28 100644
+--- a/arch/arm/boot/boot-wrapper/Makefile
++++ b/arch/arm/boot/boot-wrapper/Makefile
+@@ -6,8 +6,9 @@
+ # found in the LICENSE.txt file.
+ 
+ BOOTLOADER	= boot.S
+-KERNEL		= zImage
++KERNEL		= ../zImage
+ KERNEL_HDR_SZ	= 0x0	# 0x40 for uImage
++DTB		= ../vexpress-v2p-ca9.dtb
+ FILESYSTEM	= filesystem.cpio.gz
+ 
+ IMAGE		= linux-system.axf
+@@ -20,9 +21,10 @@ LD		= $(CROSS_COMPILE)ld
+ 
+ CPPFLAGS	+= -DKERNEL=$(KERNEL)
+ CPPFLAGS	+= -DKERNEL_HDR_SZ=$(KERNEL_HDR_SZ)
++CPPFLAGS	+= -DDTB=$(DTB)
+ CPPFLAGS	+= -DFILESYSTEM=$(FILESYSTEM)
+ 
+-CPPFLAGS	+= -DUSE_INITRD
++CPPFLAGS	+= -UUSE_INITRD
+ 
+ CPPFLAGS	+= -DVEXPRESS
+ CPPFLAGS	+= -DSMP
+diff --git a/arch/arm/boot/boot-wrapper/boot.S b/arch/arm/boot/boot-wrapper/boot.S
+index a74784f..2c24a76 100644
+--- a/arch/arm/boot/boot-wrapper/boot.S
++++ b/arch/arm/boot/boot-wrapper/boot.S
+@@ -40,7 +40,7 @@ _start:
+ 	adr	r2, 1f
+ 	ldmia	r2, {r3 - r7}			@ move the code to a location
+ 	stmia	r1, {r3 - r7}			@ less likely to be overridden
+-#ifdef VEXPRESS
++#ifdef VEXPRESS_RS1
+ 	ldr	r0, =0x1c010030			@ VE SYS_FLAGS register
+ #else
+ 	ldr	r0, =0x10000030			@ RealView SYS_FLAGS register
+@@ -62,7 +62,7 @@ _start:
+ 2:
+ #ifdef MACH_MPS
+ 	ldr	r0, =0x1f005000			@ UART3 base (MPS)
+-#elif defined (VEXPRESS)
++#elif defined (VEXPRESS_RS1)
+ 	ldr	r0, =0x1c090000			@ UART base (Versatile Express)
+ #else
+ 	ldr	r0, =0x10009000			@ UART base (RealView/EB)
+@@ -98,6 +98,7 @@ atags:
+ 	.long	2
+ 	.long	0x54410001
+ 
++#if	0
+ 	@ ATAG_CMDLINE
+ 	.long	(1f - .) >> 2
+ 	.long	0x54410009
+@@ -114,6 +115,7 @@ atags:
+ #endif
+ 	.align	2
+ 1:
++#endif
+ 
+ #ifdef USE_INITRD
+ 	@ ATAG_INITRD2
+diff --git a/arch/arm/boot/boot-wrapper/model.lds.S b/arch/arm/boot/boot-wrapper/model.lds.S
+index 794736b..fd41257 100644
+--- a/arch/arm/boot/boot-wrapper/model.lds.S
++++ b/arch/arm/boot/boot-wrapper/model.lds.S
+@@ -12,9 +12,12 @@ OUTPUT_ARCH(arm)
+ TARGET(binary)
+ 
+ INPUT(./boot.o)
+-INPUT(./KERNEL)
++INPUT(KERNEL)
++#ifdef DTB
++INPUT(DTB)
++#endif
+ #ifdef USE_INITRD
+-INPUT(./FILESYSTEM)
++INPUT(FILESYSTEM)
+ #endif
+ 
+ #ifdef MACH_MPS
+@@ -32,13 +35,20 @@ SECTIONS
+ 
+ 	. = PHYS_OFFSET + 0x8000 - KERNEL_HDR_SZ;
+ 	kernel = . + KERNEL_HDR_SZ;
+-	.kernel : { ./KERNEL }
++	.kernel : { KERNEL }
++
++#ifdef	DTB
++	. = ALIGN(1);
++	dtb = .;
++	.dtb : { DTB }
++#endif
+ 
+-	. = PHYS_OFFSET + 0x00800000;
++	. = PHYS_OFFSET + 0x0C000000;
+ 	filesystem = .;
+ #ifdef USE_INITRD
+-	.filesystem : { ./FILESYSTEM }
++	.filesystem : { FILESYSTEM }
+ 	fs_size = . - filesystem;
++	. = PHYS_OFFSET + 0x0C000000 + 0x10000000; /* we enlarged the file system size to ... (data + bss) */
+ #endif
+ 
+ 	.data : { *(.data) }
+-- 
+1.7.11.7
+
