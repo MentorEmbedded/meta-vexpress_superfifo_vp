@@ -133,3 +133,19 @@ pkg_postrm_kernel-devicetree () {
 		update-alternatives --remove ${DTB_BASE_NAME}.dtb devicetree-${DTB_SYMLINK_NAME}.dtb ${KERNEL_PRIORITY} || true
 	done
 }
+
+pkg_postinst_${PN} () {
+#!/bin/sh
+if [ "x$D" != "x" ]; then
+        exit 1
+fi
+
+#Add the module to the list of modules to load at boot
+echo super_fifo_dev >> /etc/modules
+
+#Create the device node in udev static area
+cd /lib/udev/devices
+mknod superFIFODev c 89 0
+
+
+}
