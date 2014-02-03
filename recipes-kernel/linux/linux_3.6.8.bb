@@ -15,7 +15,6 @@ SRC_URI = "${KERNELORG_MIRROR}/linux/kernel/v3.x/linux-${PV}.tar.bz2;name=kernel
            file://0001-sfifo_demo_ws_19_Aug.patch \
            file://0001-SuperFIFO-Virtual-Prototype-Demo-Driver.patch \
            file://0001-SuperFIFO-Virtual-Prototype-DTS-updates.patch \
-           file://0001-SuperFIFO-Virtual-Prototype-Demo-Driver-Sep-03-2013-.patch \
            file://0001-ARM-vexpress-DTS-update-to-include-changes-in-recent.patch \
            file://0001-ARM-vexpress-defconfig-update-to-include-changes-in-.patch \
            file://0001-ARM-vexpress-dts-set-bootargs-via-CMDLINE-and-disabl.patch \
@@ -141,7 +140,7 @@ if [ "x$D" != "x" ]; then
 fi
 
 #Add the module to the list of modules to load at boot
-echo super_fifo_dev >> /etc/modules
+echo sfifo_drv >> /etc/modules
 
 #Create the device node in udev static area
 cd /lib/udev/devices

@@ -147,7 +147,7 @@ index 0000000..29957bf
 +#define SFIFO_STAT_NOT_E	0x02
 +#define SFIFO_STAT_EMPTY    0x01
 +
-+static unsigned long base = 0x40000000;
++static unsigned long base = 0x4a000000;
 +static super_fifo_regs *regs;
 +//static struct class *dev_class = 0;
 +
