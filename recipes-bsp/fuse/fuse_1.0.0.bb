@@ -14,6 +14,8 @@ do_install(){
  	ln -sf  ../init.d/fuse.sh    ${D}${sysconfdir}/rc5.d/S99fuse
         install -d ${D}${bindir}
         install -m 0111 ${WORKDIR}/fuse_host_access.exe ${D}${bindir}
+	install -d ${D}${base_bindir}
+	install -m 0111 ${WORKDIR}/compute_vp_time_delta.exe ${D}${base_bindir}
 }
  
 
